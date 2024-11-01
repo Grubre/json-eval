@@ -8,27 +8,29 @@
 
 namespace jp {
 
-// JSON tokens
-struct LBracket {}; // [
-struct RBracket {}; // ]
-struct Comma {};    // ,
-struct Colon {};    // :
-struct LBrace {};   // {
-struct RBrace {};   // }
-struct Quote {};    // "
+#define DEFINE_TOKEN_TYPE(name, ...)                                                                                   \
+    struct name {                                                                                                      \
+        __VA_ARGS__                                                                                                    \
+        auto operator==(const name &other) const -> bool = default;                                                    \
+        auto operator!=(const name &other) const -> bool = default;                                                    \
+    };
 
-struct True {};  // true
-struct False {}; // false
-struct Null {};  // null
+DEFINE_TOKEN_TYPE(LBracket)
+DEFINE_TOKEN_TYPE(RBracket)
+DEFINE_TOKEN_TYPE(Comma)
+DEFINE_TOKEN_TYPE(Colon)
+DEFINE_TOKEN_TYPE(LBrace)
+DEFINE_TOKEN_TYPE(RBrace)
+DEFINE_TOKEN_TYPE(Quote)
 
-struct Number {
-    // FIXME: Might need to be a variant<double, int64_t> to support both int and double
-    double value;
-};
+DEFINE_TOKEN_TYPE(True)
+DEFINE_TOKEN_TYPE(False)
+DEFINE_TOKEN_TYPE(Null)
 
-struct String {
-    std::string value;
-};
+// FIXME: The value member might need to be a variant<double, int64_t> to support both int and double
+DEFINE_TOKEN_TYPE(Number, double value;)
+
+DEFINE_TOKEN_TYPE(String, std::string value;)
 
 using TokenType =
     std::variant<LBracket, RBracket, Comma, Colon, LBrace, RBrace, Quote, True, False, Null, Number, String>;
