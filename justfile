@@ -17,5 +17,8 @@ run *ARGS: (build)
 test *ARGS: (build)
     cd build && ctest {{ARGS}}
 
+debug *ARGS: (build "Debug")
+    gdb --args ./build/src/{{EXEC_NAME}} {{ARGS}}
+
 clean:
     rm -rf {{BUILD_DIR}}

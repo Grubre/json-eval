@@ -23,7 +23,8 @@ Checks: "*,
         -concurrency-mt-unsafe,
         -bugprone-easily-swappable-parameters,
         -cppcoreguidelines-pro-type-vararg,
-        -hicpp-vararg
+        -hicpp-vararg,
+        -readability-function-cognitive-complexity
 "
 WarningsAsErrors: ''
 HeaderFilterRegex: ''
