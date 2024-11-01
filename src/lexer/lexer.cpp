@@ -2,6 +2,7 @@
 #include "error.hpp"
 #include "expected.hpp"
 
+#include <cmath>
 #include <format>
 #include <iostream>
 
@@ -152,10 +153,29 @@ auto Lexer::parse_number() -> jp::expected<Token, Error> {
         chop(1);
         chop_while(is_numeric);
     }
+    const auto number_str = source.substr(starting_col - 1, current_index - starting_col + 1);
+    auto value = std::stod(std::string(number_str));
 
-    const auto number = source.substr(starting_col - 1, current_index - starting_col + 1);
-    return jp::Token{
-        .token_type = jp::Number{.value = std::stod(std::string(number))}, .row = line_number, .col = starting_col};
+    // check if it's a scientific notation
+    if (current_index < source.size() && (source[current_index] == 'e' || source[current_index] == 'E')) {
+        chop(1);
+        const auto exponential_start = current_index;
+        if (current_index < source.size() && (source[current_index] == '+' || source[current_index] == '-')) {
+            chop(1);
+        }
+        chop_while(is_numeric);
+
+        if (exponential_start == current_index) {
+            return Error{"Lexer", "Invalid scientific notation", line_number, starting_col};
+        }
+
+        const auto exponential = source.substr(exponential_start, current_index - exponential_start);
+        std::cout << "exponential: " << exponential << std::endl;
+        const auto exp_value = std::stod(std::string(exponential));
+        value *= std::pow(10, exp_value);
+    }
+
+    return jp::Token{.token_type = jp::Number{.value = value}, .row = line_number, .col = starting_col};
 }
 
 auto Lexer::next_token() -> std::optional<jp::expected<Token, Error>> {
