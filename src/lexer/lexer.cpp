@@ -170,7 +170,6 @@ auto Lexer::parse_number() -> jp::expected<Token, Error> {
         }
 
         const auto exponential = source.substr(exponential_start, current_index - exponential_start);
-        std::cout << "exponential: " << exponential << std::endl;
         const auto exp_value = std::stod(std::string(exponential));
         value *= std::pow(10, exp_value);
     }
@@ -179,7 +178,6 @@ auto Lexer::parse_number() -> jp::expected<Token, Error> {
 }
 
 auto Lexer::next_token() -> std::optional<jp::expected<Token, Error>> {
-    std::cout << "current index: " << current_index << std::endl;
     trim_whitespace();
 
     if (current_index >= source.size()) {
