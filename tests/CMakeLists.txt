@@ -10,5 +10,5 @@ function(create_test test_name source_file)
   add_test(NAME ${test_name} COMMAND ${test_name})
 endfunction()
 
-create_test(test1 test1.cpp)
+create_test(lexer_test lexer_tests/lexer_test.cpp Common Lexer)
 
