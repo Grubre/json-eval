@@ -48,6 +48,11 @@ template <typename T, typename E> class [[nodiscard]] expected {
         }
         return false;
     }
+    [[nodiscard]] auto operator!=(const expected &rhs) const -> bool { return !(*this == rhs); }
+    [[nodiscard]] auto operator*() -> T & { return value(); }
+    [[nodiscard]] auto operator*() const -> const T & { return value(); }
+    [[nodiscard]] auto operator->() -> T * { return &value(); }
+    [[nodiscard]] auto operator->() const -> const T * { return &value(); }
 
   private:
     std::variant<T, error_type> m_expected_var;
