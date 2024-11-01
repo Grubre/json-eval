@@ -1,0 +1,21 @@
+BUILD_DIR := "build"
+SRC_DIR := "src"
+TEST_DIR := "tests"
+EXEC_NAME := "json-eval"
+
+default: run
+
+build BUILD_TYPE="Debug":
+    git submodule update --init --recursive && \
+    mkdir -p {{BUILD_DIR}} && cd {{BUILD_DIR}} && \
+    cmake -DCMAKE_BUILD_TYPE={{BUILD_TYPE}} .. && \
+    cmake --build . --config {{BUILD_TYPE}}
+
+run *ARGS: (build)
+    ./build/src/{{EXEC_NAME}} {{ARGS}}
+
+test *ARGS: (build)
+    cd build && ctest {{ARGS}}
+
+clean:
+    rm -rf {{BUILD_DIR}}
