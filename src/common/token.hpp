@@ -6,6 +6,8 @@
 #include <string>
 #include <variant>
 
+namespace jp {
+
 // JSON tokens
 struct LBracket {}; // [
 struct RBracket {}; // ]
@@ -71,10 +73,12 @@ constexpr auto to_string(TokenType token_type) -> std::string {
             } else if constexpr (std::is_same_v<T, Number>) {
                 return std::to_string(token.value);
             } else if constexpr (std::is_same_v<T, String>) {
-                return token.value;
+                return std::format("\"{}\"", token.value);
             } else {
                 return "";
             }
         },
         token_type);
 }
+
+} // namespace jp
