@@ -46,13 +46,13 @@ void Lexer::trim_whitespace() {
     while (current_index < source.size()) {
         char c = source[current_index];
         if (c == ' ' || c == '\t' || c == '\r') {
-            current_index++;
             column_number++;
         } else if (c == '\n') {
             newline();
         } else {
             break;
         }
+        current_index++;
     }
 }
 

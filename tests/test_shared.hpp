@@ -4,6 +4,7 @@
 #include <array>
 #include <fstream>
 #include <iomanip>
+#include <iostream>
 #include <optional>
 #include <sstream>
 #include <string>

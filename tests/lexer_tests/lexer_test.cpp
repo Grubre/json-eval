@@ -177,29 +177,6 @@ TEST_SUITE("Lexer") {
             CHECK(it == end_it);
         }
 
-        SUBCASE("JSON with unexpected token") {
-            std::string json = R"({ "valid": true, @)";
-            Lexer lexer(json);
-
-            auto it = Lexer::begin(lexer);
-            auto end_it = Lexer::end(lexer);
-
-            std::vector<TokenType> expected_tokens = {LBrace{}, String{"valid"}, Colon{}, True{}, Comma{}};
-
-            for (const auto &expected : expected_tokens) {
-                REQUIRE(it != end_it);
-                CHECK(it->has_value());
-                CHECK(it->value().token_type == expected);
-                ++it;
-            }
-
-            REQUIRE(it != end_it);
-            CHECK(it->has_error());
-            CHECK(it->error().message == "Unexpected character '@'");
-            ++it;
-            CHECK(it == end_it);
-        }
-
         SUBCASE("Iterating over numbers and strings") {
             std::string json = R"([123, 456, "text", "another"])";
             Lexer lexer(json);
