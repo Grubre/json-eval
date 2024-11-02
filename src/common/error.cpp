@@ -1,3 +1,4 @@
+#include <iostream>
 #include "error.hpp"
 
 auto Error::operator==(const Error &other) const -> bool {
@@ -6,11 +7,6 @@ auto Error::operator==(const Error &other) const -> bool {
 }
 
 void display_error(const Error &error) {
-    /*fmt::print(fg(fmt::color::white) | fmt::emphasis::bold, "{}:{}:{}: ", error.source, error.line, error.column);*/
-    /*if (error.is_warning) {*/
-    /*    fmt::print(fg(fmt::color::yellow), "Warning: ");*/
-    /*} else {*/
-    /*    fmt::print(fg(fmt::color::red), "Fatal Error: ");*/
-    /*}*/
-    /*fmt::print("{}.\n", error.message);*/
+    std::cout << "Error: " << error.source << ":" << error.line << ":" << error.column << ": " << error.message
+              << std::endl;
 }

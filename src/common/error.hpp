@@ -13,7 +13,6 @@ struct Error {
     auto operator==(const Error &other) const -> bool;
 };
 
-// true if error, false if warning
 void display_error(const Error &error);
 
 template <typename T>
