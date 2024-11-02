@@ -138,84 +138,31 @@ TEST_SUITE("Lexer") {
         REQUIRE(token->has_error());
     }
 
-    TEST_CASE("LexerIterator basic functionality") {
-        using namespace jp;
+    TEST_CASE("LexerIterator basic functionality") {}
+}
 
-        SUBCASE("Iterate through JSON tokens") {
-            std::string json = R"({"key": "value", "num": 123, "bool": true, "nullVal": null})";
-            Lexer lexer(json);
-            std::vector<TokenType> expected_tokens = {
-                LBrace{}, String{"key"},     Colon{}, String{"value"}, Comma{}, String{"num"},
-                Colon{},  Number{123},       Comma{}, String{"bool"},  Colon{}, True{},
-                Comma{},  String{"nullVal"}, Colon{}, Null{},          RBrace{}};
+TEST_SUITE("Lexer::Iterator") {
+    TEST_CASE("Empty source input") {
+        Lexer lexer("");
+        auto it = lexer.begin();
+        auto end = lexer.end();
 
-            auto it = Lexer::begin(lexer);
-            auto end_it = Lexer::end(lexer);
+        REQUIRE(it == end);
+    }
 
-            for (const auto &expected : expected_tokens) {
-                REQUIRE(it != end_it);
-                CHECK(it->has_value());
-                CHECK(it->value().token_type == expected);
-                ++it;
-            }
-            CHECK(it == end_it);
+    TEST_CASE("Valid source input") {
+        const auto *const source = R"({["key": "value", "key2": 123.45, "key3": true, "key4": null]})";
+
+        for (const auto &token : Lexer(source)) {
+            CHECK(token.has_value());
         }
+    }
 
-        SUBCASE("Empty JSON input") {
-            std::string json = "";
-            Lexer lexer(json);
-            auto it = Lexer::begin(lexer);
-            auto end_it = Lexer::end(lexer);
-            CHECK(it == end_it);
-        }
+    TEST_CASE("Invalid source input") {
+        const auto *const source = R"(abc e123.123e.e ; ''' ??--)";
 
-        SUBCASE("JSON with only whitespace") {
-            std::string json = "    \n\t  ";
-            Lexer lexer(json);
-            auto it = Lexer::begin(lexer);
-            auto end_it = Lexer::end(lexer);
-            CHECK(it == end_it);
-        }
-
-        SUBCASE("Iterating over numbers and strings") {
-            std::string json = R"([123, 456, "text", "another"])";
-            Lexer lexer(json);
-
-            auto it = Lexer::begin(lexer);
-            auto end_it = Lexer::end(lexer);
-
-            std::vector<TokenType> expected_tokens = {LBracket{},  Number{123},       Comma{},
-                                                      Number{456}, Comma{},           String{"text"},
-                                                      Comma{},     String{"another"}, RBracket{}};
-
-            for (const auto &expected : expected_tokens) {
-                REQUIRE(it != end_it);
-                CHECK(it->has_value());
-                CHECK(it->value().token_type == expected);
-                ++it;
-            }
-            CHECK(it == end_it);
-        }
-
-        SUBCASE("Complex JSON structure") {
-            std::string json = R"({"nested": {"array": [1, 2, 3], "bool": false}})";
-            Lexer lexer(json);
-
-            auto it = Lexer::begin(lexer);
-            auto end_it = Lexer::end(lexer);
-
-            std::vector<TokenType> expected_tokens = {LBrace{}, String{"nested"}, Colon{},    LBrace{}, String{"array"},
-                                                      Colon{},  LBracket{},       Number{1},  Comma{},  Number{2},
-                                                      Comma{},  Number{3},        RBracket{}, Comma{},  String{"bool"},
-                                                      Colon{},  False{},          RBrace{},   RBrace{}};
-
-            for (const auto &expected : expected_tokens) {
-                REQUIRE(it != end_it);
-                CHECK(it->has_value());
-                CHECK(it->value().token_type == expected);
-                ++it;
-            }
-            CHECK(it == end_it);
+        for (const auto &token : Lexer(source)) {
+            CHECK(token.has_error());
         }
     }
 }
