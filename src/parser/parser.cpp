@@ -24,8 +24,7 @@ auto Parser::chop() -> std::optional<Token> {
 }
 
 auto Parser::parse_object() -> std::optional<JSONObject> {
-    chop(); // consume LBrace
-    JSONObject obj;
+    auto obj = JSONObject{};
 
     if (tokens.empty()) {
         return std::nullopt;
@@ -89,28 +88,28 @@ auto Parser::parse_value() -> std::optional<JSONValue> {
 
     auto token = *chop();
 
-    std::visit(overloaded{[&](jp::LBrace) -> std::optional<JSONValue> {
-                              auto obj = parse_object();
-                              if (obj) {
-                                  return JSONValue(*obj);
-                              }
-                              return std::nullopt;
-                          },
-                          [&](jp::LBracket) -> std::optional<JSONValue> {
-                              exit(20);
-                              /*auto arr = parse_array();*/
-                              /*if (arr) {*/
-                              /*    return JSONValue(*arr);*/
-                              /*}*/
-                              return std::nullopt;
-                          },
-                          [&](jp::String &&s) -> std::optional<JSONValue> { return JSONValue(s.value); },
-                          [&](jp::Number &&n) -> std::optional<JSONValue> { return JSONValue(n.value); },
-                          [&](jp::True) -> std::optional<JSONValue> { return JSONValue(true); },
-                          [&](jp::False) -> std::optional<JSONValue> { return JSONValue(false); },
-                          [&](jp::Null) -> std::optional<JSONValue> { return JSONValue(JSONNull{}); },
-                          [&](auto) -> std::optional<JSONValue> { return std::nullopt; }},
-               token.token_type);
+    return std::visit(overloaded{[&](jp::LBrace) -> std::optional<JSONValue> {
+                                     auto obj = parse_object();
+                                     if (obj) {
+                                         return JSONValue(*obj);
+                                     }
+                                     return std::nullopt;
+                                 },
+                                 [&](jp::LBracket) -> std::optional<JSONValue> {
+                                     exit(20);
+                                     /*auto arr = parse_array();*/
+                                     /*if (arr) {*/
+                                     /*    return JSONValue(*arr);*/
+                                     /*}*/
+                                     return std::nullopt;
+                                 },
+                                 [&](const jp::String &s) -> std::optional<JSONValue> { return JSONValue(s.value); },
+                                 [&](const jp::Number &n) -> std::optional<JSONValue> { return JSONValue(n.value); },
+                                 [&](jp::True) -> std::optional<JSONValue> { return JSONValue(true); },
+                                 [&](jp::False) -> std::optional<JSONValue> { return JSONValue(false); },
+                                 [&](jp::Null) -> std::optional<JSONValue> { return JSONValue(JSONNull{}); },
+                                 [&](auto) -> std::optional<JSONValue> { return std::nullopt; }},
+                      token.token_type);
 
     return std::nullopt;
 }
@@ -122,15 +121,15 @@ auto Parser::parse() -> std::optional<JSONValue> {
 
     auto token = *chop();
 
-    std::visit(overloaded{[&](jp::LBrace) -> std::optional<JSONValue> {
-                              auto obj = parse_object();
-                              if (obj) {
-                                  return JSONValue(*obj);
-                              }
-                              return std::nullopt;
-                          },
-                          [&](auto) -> std::optional<JSONValue> { return std::nullopt; }},
-               token.token_type);
+    return std::visit(overloaded{[&](jp::LBrace) -> std::optional<JSONValue> {
+                                     auto obj = parse_object();
+                                     if (obj) {
+                                         return JSONValue(*obj);
+                                     }
+                                     return std::nullopt;
+                                 },
+                                 [&](auto) -> std::optional<JSONValue> { return std::nullopt; }},
+                      token.token_type);
 
     return std::nullopt;
 }
