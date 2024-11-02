@@ -24,8 +24,8 @@ template <typename T, typename E> class [[nodiscard]] expected {
     [[nodiscard]] auto error() const -> const E & { return std::get<E>(m_expected_var); }
     [[nodiscard]] auto has_value() const -> bool { return std::holds_alternative<T>(m_expected_var); }
     [[nodiscard]] auto has_error() const -> bool { return std::holds_alternative<E>(m_expected_var); }
-    [[nodiscard]] auto consume_value() -> T { return std::move(std::get<T>(m_expected_var)); }
-    [[nodiscard]] auto consume_error() -> E { return std::move(std::get<E>(m_expected_var)); }
+    [[nodiscard]] auto consume_value() -> T && { return std::move(std::get<T>(m_expected_var)); }
+    [[nodiscard]] auto consume_error() -> E && { return std::move(std::get<E>(m_expected_var)); }
     [[nodiscard]] auto value_or(T &&default_value) -> T {
         if (has_value()) {
             return value();

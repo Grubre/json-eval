@@ -1,11 +1,13 @@
 add_subdirectory(common)
+add_subdirectory(jsonobject)
 add_subdirectory(lexer)
+add_subdirectory(parser)
 
 set(EXEC_NAME "json-eval")
 
 add_executable(${EXEC_NAME} main.cpp)
 
-target_link_libraries(${EXEC_NAME} Common Lexer)
+target_link_libraries(${EXEC_NAME} Common Lexer Parser JSONObject)
 
 set(MAIN_FLAGS ${COMPILE_FLAGS})
 
