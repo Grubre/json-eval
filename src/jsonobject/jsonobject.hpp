@@ -1,5 +1,6 @@
 #pragma once
 
+#include "common.hpp"
 #include <vector>
 #include <variant>
 #include <unordered_map>
@@ -35,6 +36,55 @@ inline auto keys(const JSONObject &obj) -> std::vector<std::string_view> {
     }
 
     return keys;
+}
+
+inline auto to_string(const JSONNull & /*unused*/) -> std::string { return "null"; }
+
+inline auto to_string(const JSONValue &val) -> std::string;
+
+inline auto to_string(const JSONArray &arr) -> std::string {
+    auto str = std::string{'['};
+
+    for (const auto &value : arr) {
+        str += to_string(value);
+        str += ", ";
+    }
+
+    if (!str.empty()) {
+        str.pop_back();
+        str.pop_back();
+    }
+
+    return str + ']';
+}
+
+inline auto to_string(const JSONObject &obj) -> std::string {
+    auto str = std::string{'{'};
+
+    for (const auto &[key, value] : obj) {
+        str += key;
+        str += ": ";
+        str += to_string(value);
+        str += ", ";
+    }
+
+    if (!str.empty() && str.size() > 1) {
+        str.pop_back();
+        str.pop_back();
+    }
+
+    return str + '}';
+}
+
+inline auto to_string(const JSONValue &val) -> std::string {
+    return std::visit(overloaded{[](const JSONNull &) -> std::string { return "null"; },
+                                 [](bool b) -> std::string { return b ? "true" : "false"; },
+                                 [](double d) -> std::string { return std::to_string(d); },
+                                 [](const std::string &s) -> std::string { return '"' + s + '"'; },
+                                 [](const JSONObject &obj) -> std::string { return to_string(obj); },
+                                 [](const JSONArray &arr) -> std::string { return to_string(arr); }},
+                      val.value);
+    return {};
 }
 
 } // namespace jp
