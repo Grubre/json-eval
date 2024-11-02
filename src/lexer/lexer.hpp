@@ -4,9 +4,7 @@
 #include "expected.hpp"
 #include "token.hpp"
 #include <functional>
-#include <memory>
 #include <optional>
-#include <string>
 #include <iterator>
 
 namespace jp {
@@ -19,7 +17,7 @@ class Lexer {
 
     auto next_token() -> std::optional<jp::expected<Token, Error>>;
 
-    class LexerIterator {
+    class Iterator {
       public:
         using iterator_category = std::input_iterator_tag;
         using value_type = jp::expected<Token, Error>;
@@ -27,59 +25,34 @@ class Lexer {
         using pointer = const value_type *;
         using reference = const value_type &;
 
-        // Constructors
-        explicit LexerIterator(Lexer *lexer) : lexer(lexer), current_token(std::make_unique<value_type>(advance())) {}
-        LexerIterator() = default;
+        explicit Iterator(Lexer *lexer) : current_token{lexer->next_token()}, lexer{current_token ? lexer : nullptr} {}
+        Iterator() = default;
 
-        // Dereference
         auto operator*() const -> reference { return *current_token; }
-        auto operator->() const -> pointer { return current_token.get(); }
+        auto operator->() const -> pointer { return &(*current_token); }
 
-        // Pre-increment
-        auto operator++() -> LexerIterator & {
-            current_token = std::make_unique<value_type>(advance());
+        auto operator++() -> Iterator & {
+            if (lexer != nullptr) {
+                current_token = lexer->next_token();
+                if (!current_token) {
+                    lexer = nullptr;
+                }
+            }
             return *this;
         }
 
-        // Post-increment
-        auto operator++(int) -> LexerIterator {
-            LexerIterator temp = std::move(*this);
-            ++(*this);
-            return temp;
+        auto operator==(const Iterator &other) const -> bool {
+            return (lexer == other.lexer && current_token == other.current_token);
         }
-
-        // Equality and inequality
-        auto operator==(const LexerIterator &other) const -> bool {
-            return (is_end() && other.is_end()) ||
-                   (current_token && other.current_token && *current_token == *other.current_token);
-        }
-
-        auto operator!=(const LexerIterator &other) const -> bool { return !(*this == other); }
+        auto operator!=(const Iterator &other) const -> bool { return !(*this == other); }
 
       private:
+        std::optional<value_type> current_token = std::nullopt;
         Lexer *lexer = nullptr;
-        std::unique_ptr<value_type> current_token;
-
-        // Advance the iterator to the next token
-        auto advance() -> value_type {
-            if (lexer != nullptr) {
-                if (auto token = lexer->next_token()) {
-                    return std::move(*token);
-                }
-            }
-            return Error{.source = "Lexer",
-                         .message = "End of input reached",
-                         .line = lexer->line_number,
-                         .column = lexer->column_number};
-        }
-
-        [[nodiscard]] auto is_end() const -> bool { return !current_token || current_token->has_error(); }
     };
 
-    // Begin and end functions for Lexer
-    static inline auto begin(Lexer &lexer) -> LexerIterator { return LexerIterator(&lexer); }
-
-    static inline auto end(Lexer & /*lexer*/) -> LexerIterator { return {}; }
+    inline auto begin() -> Iterator { return Iterator(this); }
+    static inline auto end() -> Iterator { return {}; }
 
   private:
     auto chop(int count) -> std::string_view;
@@ -97,5 +70,7 @@ class Lexer {
     unsigned current_index;
     std::string_view source;
 };
+
+auto collect_tokens(const std::string_view source) -> std::pair<std::vector<Token>, std::vector<Error>>;
 
 } // namespace jp

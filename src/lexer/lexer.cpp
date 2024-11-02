@@ -196,7 +196,6 @@ auto Lexer::next_token() -> std::optional<jp::expected<Token, Error>> {
         return parse_string();
     }
 
-    // FIXME: Needs to support scientific notation
     if (is_numeric(c)) {
         return parse_number();
     }
@@ -218,4 +217,20 @@ auto Lexer::next_token() -> std::optional<jp::expected<Token, Error>> {
     };
     return Error{"Lexer", std::format("Unexpected character '{}'", c), line_number, column_number};
 }
+
+auto collect_tokens(const std::string_view source) -> std::pair<std::vector<Token>, std::vector<Error>> {
+    auto tokens = std::vector<Token>{};
+    auto errors = std::vector<Error>{};
+
+    for (const auto &next_token : Lexer(source)) {
+        if (next_token.has_value()) {
+            tokens.push_back(next_token.value());
+        } else {
+            errors.push_back(next_token.error());
+        }
+    }
+
+    return {tokens, errors};
+}
+
 } // namespace jp
