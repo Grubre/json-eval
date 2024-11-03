@@ -12,8 +12,7 @@ namespace jp {
 class Lexer {
   public:
     Lexer() = delete;
-    explicit Lexer(const std::string_view source)
-        : line_number(1), column_number(1), current_index(0), source(source) {}
+    explicit Lexer(const std::string_view source) : line_number(1), column_number(1), source(source) {}
 
     auto next_token() -> std::optional<jp::expected<Token, Error>>;
 
@@ -55,7 +54,7 @@ class Lexer {
     static inline auto end() -> Iterator { return {}; }
 
   private:
-    auto chop(int count) -> std::string_view;
+    auto chop() -> char;
     auto chop_while(const std::function<bool(char)> &predicate) -> std::string_view;
     auto peek() -> std::optional<char>;
     void trim_whitespace();
@@ -65,9 +64,8 @@ class Lexer {
     auto parse_string() -> jp::expected<Token, Error>;
     auto parse_number() -> jp::expected<Token, Error>;
 
-    unsigned line_number;
-    unsigned column_number;
-    unsigned current_index;
+    uint32_t line_number;
+    uint32_t column_number;
     std::string_view source;
 };
 

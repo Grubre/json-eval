@@ -1,58 +1,56 @@
 #include "lexer.hpp"
+#include "common.hpp"
 #include "error.hpp"
 #include "expected.hpp"
+#include "parser_helper.hpp"
 
 #include <cmath>
 #include <format>
+#include <iomanip>
 #include <iostream>
 
 namespace jp {
 
-static auto is_numeric(char c) -> bool { return c >= '0' && c <= '9'; }
-static auto is_lowercase_alphabetic(char c) -> bool { return (c >= 'a' && c <= 'z'); }
-static auto is_uppercase_alphabetic(char c) -> bool { return (c >= 'A' && c <= 'Z'); }
-static auto is_alphabetic(char c) -> bool { return is_lowercase_alphabetic(c) || is_uppercase_alphabetic(c); }
-static auto is_alphanumeric(char c) -> bool { return is_alphabetic(c) || is_numeric(c); }
-
-auto Lexer::chop(int count) -> std::string_view {
-    auto result = source.substr(current_index, count);
-    current_index += count;
-    column_number += count;
+auto Lexer::chop() -> char {
+    auto result = source.front();
+    source.remove_prefix(1);
+    column_number++;
     return result;
 }
 
 auto Lexer::chop_while(const std::function<bool(char)> &predicate) -> std::string_view {
-    auto start = current_index;
-    while (current_index < source.size() && predicate(source[current_index])) {
-        if (source[current_index] == '\n') {
+    auto i = 0u;
+    while (i < source.size() && predicate(source[i])) {
+        if (source[i] == '\n') {
             newline();
         }
 
-        current_index++;
+        i++;
         column_number++;
     }
-    return source.substr(start, current_index - start);
+
+    auto result = source.substr(0, i);
+    source.remove_prefix(i);
+    return result;
 }
 
 auto Lexer::peek() -> std::optional<char> {
-    if (current_index + 1 >= source.size()) {
+    if (source.empty()) {
         return std::nullopt;
     }
-
-    return source[current_index + 1];
+    return source.front();
 }
 
 void Lexer::trim_whitespace() {
-    while (current_index < source.size()) {
-        char c = source[current_index];
+    while (auto c = peek()) {
         if (c == ' ' || c == '\t' || c == '\r') {
-            column_number++;
+            chop();
         } else if (c == '\n') {
+            chop();
             newline();
         } else {
             break;
         }
-        current_index++;
     }
 }
 
@@ -80,113 +78,49 @@ auto Lexer::parse_keyword() -> jp::expected<Token, Error> {
 }
 
 auto Lexer::parse_string() -> jp::expected<Token, Error> {
-    const auto string_begin = column_number;
-    auto str = std::string{};
-
-    // consume opening '"'
-    chop(1);
-
-    // consider \ escape sequences
-    while (current_index < source.size()) {
-        if (source[current_index] == '"') {
-            break;
-        }
-
-        if (source[current_index] == '\\') {
-            if (!peek().has_value()) {
-                break;
-            }
-            chop(1);
-            switch (source[current_index]) {
-            case '"':
-                str += '"';
-                break;
-            case '\\':
-                str += '\\';
-                break;
-            case 'b':
-                str += '\b';
-                break;
-            case 'f':
-                str += '\f';
-                break;
-            case 'n':
-                str += '\n';
-                break;
-            case 'r':
-                str += '\r';
-                break;
-            case 't':
-                str += '\t';
-                break;
-            /*case 'u':*/
-            /*    str += "\\u";*/
-            /*    break;*/
-            default:
-                return Error{"Lexer", std::format("Unexpected escape sequence '\\{}'", source[current_index]),
-                             line_number, column_number};
-            };
-            chop(1);
-            continue;
-        }
-
-        str += chop(1);
+    const auto starting_col = column_number;
+    chop(); // consume opening quote
+    const auto source_size_before = source.size();
+    auto str = parse_str(source);
+    if (str.has_error()) {
+        auto error = str.consume_error();
+        error.column = starting_col;
+        error.line = line_number;
+        return error;
     }
-
-    if (current_index >= source.size()) {
-        return Error{"Lexer", "Unterminated string", line_number, column_number};
-    }
-
-    // consume ending '"'
-    chop(1);
-    return jp::Token{.token_type = jp::String{.value = str}, .row = line_number, .col = string_begin};
+    column_number += source_size_before - source.size();
+    return jp::Token{
+        .token_type = jp::String{.value = std::move(str.consume_value())}, .row = line_number, .col = starting_col};
 }
 
 auto Lexer::parse_number() -> jp::expected<Token, Error> {
     const auto starting_col = column_number;
-
-    // consume the first digit
-    chop_while(is_numeric);
-
-    // check if it's a floating point number
-    if (current_index < source.size() && source[current_index] == '.') {
-        chop(1);
-        chop_while(is_numeric);
+    const auto source_size_before = source.size();
+    auto number = parse_num(source);
+    if (number.has_error()) {
+        auto error = number.consume_error();
+        error.column = starting_col;
+        error.line = line_number;
+        return error;
     }
-    const auto number_str = source.substr(starting_col - 1, current_index - starting_col + 1);
-    auto value = std::stod(std::string(number_str));
-
-    // check if it's a scientific notation
-    if (current_index < source.size() && (source[current_index] == 'e' || source[current_index] == 'E')) {
-        chop(1);
-        const auto exponential_start = current_index;
-        if (current_index < source.size() && (source[current_index] == '+' || source[current_index] == '-')) {
-            chop(1);
-        }
-        chop_while(is_numeric);
-
-        if (exponential_start == current_index) {
-            return Error{"Lexer", "Invalid scientific notation", line_number, starting_col};
-        }
-
-        const auto exponential = source.substr(exponential_start, current_index - exponential_start);
-        const auto exp_value = std::stod(std::string(exponential));
-        value *= std::pow(10, exp_value);
-    }
-
-    return jp::Token{.token_type = jp::Number{.value = value}, .row = line_number, .col = starting_col};
+    column_number += source_size_before - source.size();
+    return Token{number.consume_value(), line_number, starting_col};
 }
 
 auto Lexer::next_token() -> std::optional<jp::expected<Token, Error>> {
     trim_whitespace();
 
-    if (current_index >= source.size()) {
+    const auto first_char_column = column_number;
+
+    if (source.empty()) {
         return std::nullopt;
     }
 
-    const char c = source[current_index];
+    const char c = *peek();
 
-    const auto first_char_column = column_number;
+    if (is_numeric(c)) {
+        return parse_number();
+    }
 
     if (is_alphabetic(c)) {
         return parse_keyword();
@@ -196,26 +130,23 @@ auto Lexer::next_token() -> std::optional<jp::expected<Token, Error>> {
         return parse_string();
     }
 
-    if (is_numeric(c)) {
-        return parse_number();
-    }
+    chop();
 
-    chop(1);
     switch (c) {
     case '{':
-        return jp::Token{.token_type = jp::LBrace{}, .row = column_number, .col = first_char_column};
+        return jp::Token{.token_type = jp::LBrace{}, .row = line_number, .col = first_char_column};
     case '}':
-        return jp::Token{.token_type = jp::RBrace{}, .row = column_number, .col = first_char_column};
+        return jp::Token{.token_type = jp::RBrace{}, .row = line_number, .col = first_char_column};
     case '[':
-        return jp::Token{.token_type = jp::LBracket{}, .row = column_number, .col = first_char_column};
+        return jp::Token{.token_type = jp::LBracket{}, .row = line_number, .col = first_char_column};
     case ']':
-        return jp::Token{.token_type = jp::RBracket{}, .row = column_number, .col = first_char_column};
+        return jp::Token{.token_type = jp::RBracket{}, .row = line_number, .col = first_char_column};
     case ',':
-        return jp::Token{.token_type = jp::Comma{}, .row = column_number, .col = first_char_column};
+        return jp::Token{.token_type = jp::Comma{}, .row = line_number, .col = first_char_column};
     case ':':
-        return jp::Token{.token_type = jp::Colon{}, .row = column_number, .col = first_char_column};
+        return jp::Token{.token_type = jp::Colon{}, .row = line_number, .col = first_char_column};
     };
-    return Error{"Lexer", std::format("Unexpected character '{}'", c), line_number, column_number};
+    return Error{"Lexer", std::format("Unexpected character '{}'", c), line_number, first_char_column};
 }
 
 auto collect_tokens(const std::string_view source) -> std::pair<std::vector<Token>, std::vector<Error>> {

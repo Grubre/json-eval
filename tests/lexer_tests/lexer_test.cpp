@@ -8,7 +8,6 @@
 using namespace jp;
 
 TEST_SUITE("Lexer") {
-
     TEST_CASE("Lexer recognizes keywords") {
         Lexer lexer("true false null");
 
@@ -89,25 +88,48 @@ TEST_SUITE("Lexer") {
     }
 
     TEST_CASE("Lexer recognizes strings") {
-        Lexer lexer(R"("hello" "world")");
-
-        // First token: "hello"
+        Lexer lexer(R"({"hello": "world"})");
+        // First token: "{"
         auto token1 = lexer.next_token();
         REQUIRE(token1.has_value());
         REQUIRE(token1->has_value());
         CHECK(token1->value().row == 1);
         CHECK(token1->value().col == 1);
-        REQUIRE(std::holds_alternative<String>(token1->value().token_type));
-        CHECK(std::get<String>(token1->value().token_type).value == "hello");
+        REQUIRE(std::holds_alternative<LBrace>(token1->value().token_type));
 
-        // Second token: "world"
+        // Second token: "hello"
         auto token2 = lexer.next_token();
         REQUIRE(token2.has_value());
         REQUIRE(token2->has_value());
         CHECK(token2->value().row == 1);
-        CHECK(token2->value().col == 9);
+        CHECK(token2->value().col == 2);
         REQUIRE(std::holds_alternative<String>(token2->value().token_type));
-        CHECK(std::get<String>(token2->value().token_type).value == "world");
+        CHECK(std::get<String>(token2->value().token_type).value == "hello");
+
+        // Third token: ":"
+        auto token3 = lexer.next_token();
+        REQUIRE(token3.has_value());
+        REQUIRE(token3->has_value());
+        CHECK(token3->value().row == 1);
+        CHECK(token3->value().col == 9);
+        REQUIRE(std::holds_alternative<Colon>(token3->value().token_type));
+
+        // fourth token: "world"
+        auto token4 = lexer.next_token();
+        REQUIRE(token4.has_value());
+        REQUIRE(token4->has_value());
+        CHECK(token4->value().row == 1);
+        CHECK(token4->value().col == 11);
+        REQUIRE(std::holds_alternative<String>(token4->value().token_type));
+        CHECK(std::get<String>(token4->value().token_type).value == "world");
+
+        // Fifth token: "}"
+        auto token5 = lexer.next_token();
+        REQUIRE(token5.has_value());
+        REQUIRE(token5->has_value());
+        CHECK(token5->value().row == 1);
+        CHECK(token5->value().col == 18);
+        REQUIRE(std::holds_alternative<RBrace>(token5->value().token_type));
     }
 
     TEST_CASE("Lexer recognizes empty string") {
@@ -127,18 +149,16 @@ TEST_SUITE("Lexer") {
         REQUIRE(token.has_value());
         REQUIRE(token->has_value());
         REQUIRE(std::holds_alternative<String>(token->value().token_type));
-        CHECK(std::get<String>(token->value().token_type).value == "hello\nworld");
+        CHECK(std::get<String>(token->value().token_type).value == "hello\\nworld");
     }
 
-    TEST_CASE("Lexer recognizes invalid strings") {
+    TEST_CASE("Lexer rejects invalid strings") {
         Lexer lexer(R"("hello)");
 
         auto token = lexer.next_token();
         REQUIRE(token.has_value());
         REQUIRE(token->has_error());
     }
-
-    TEST_CASE("LexerIterator basic functionality") {}
 }
 
 TEST_SUITE("Lexer::Iterator") {
