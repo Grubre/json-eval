@@ -175,19 +175,7 @@ auto Parser::parse() -> std::optional<JSONValue> {
         return std::nullopt;
     }
 
-    auto token = *chop();
-
-    return std::visit(overloaded{[&](jp::LBrace) -> std::optional<JSONValue> {
-                                     auto obj = parse_object();
-                                     if (obj) {
-                                         return JSONValue(*obj);
-                                     }
-                                     return std::nullopt;
-                                 },
-                                 [&](auto) -> std::optional<JSONValue> { return std::nullopt; }},
-                      token.token_type);
-
-    return std::nullopt;
+    return parse_value();
 }
 
 auto parse(const std::string_view &json) -> expected<JSONValue, std::vector<Error>> {
