@@ -11,4 +11,5 @@ function(create_test test_name source_file)
 endfunction()
 
 create_test(lexer_test lexer_tests/lexer_test.cpp Common Lexer)
+create_test(parser_test parser_tests/parser_test.cpp Common Parser JSONObject)
 create_test(JSONTestSuite test_suite.cpp Common Lexer)
