@@ -1,7 +1,8 @@
 #include "parser.hpp"
 #include "common.hpp"
 #include "token.hpp"
-#include <iostream>
+#include "lexer.hpp"
+#include <format>
 
 namespace jp {
 auto Parser::chop() -> std::optional<Token> {
@@ -23,6 +24,23 @@ auto Parser::chop() -> std::optional<Token> {
     return &tokens.front();
 }
 
+void Parser::push_err(Error &&err) { errors.push_back(std::move(err)); }
+
+void Parser::push_err(std::string &&message, unsigned line, unsigned column) {
+    errors.push_back(Error{.message = std::move(message), .line = line, .column = column});
+}
+
+void Parser::throw_unexpected_token(std::string &&expected, const Token &unexpected) {
+    push_err(std::format("Unexpected token: Expected {}, instead found {}", expected, to_string(unexpected.token_type)),
+             unexpected.row, unexpected.col);
+}
+
+void Parser::throw_unexpected_end_of_stream(std::string &&expected) {
+    push_err(std::format("Unexpected end of stream: Expected {}", expected), 0, 0);
+}
+
+auto Parser::get_errors() -> std::span<Error> { return errors; }
+
 auto Parser::parse_object() -> std::optional<JSONObject> {
     auto obj = JSONObject{};
 
@@ -37,32 +55,31 @@ auto Parser::parse_object() -> std::optional<JSONObject> {
     }
 
     while (!tokens.empty()) {
-        auto key = *chop();
+        auto maybe_key = *chop();
 
-        if (!std::holds_alternative<jp::String>(key.token_type)) {
-            // throw unexpected token error
+        if (!std::holds_alternative<jp::String>(maybe_key.token_type)) {
+            throw_unexpected_token("a key (String)", maybe_key);
             return std::nullopt;
         }
 
-        auto colon = chop();
-        if (!colon || !std::holds_alternative<jp::Colon>(colon->token_type)) {
-            // throw unexpected token error
+        auto maybe_colon = chop();
+        if (!maybe_colon || !std::holds_alternative<jp::Colon>(maybe_colon->token_type)) {
+            throw_unexpected_token(":", *maybe_colon);
             return std::nullopt;
         }
 
-        auto value = parse_value();
+        auto maybe_value = parse_value();
 
-        if (!value) {
-            // throw unexpected token error
+        if (!maybe_value) {
             return std::nullopt;
         }
 
-        obj[std::get<jp::String>(key.token_type).value] = *value;
+        obj[std::get<jp::String>(maybe_key.token_type).value] = *maybe_value;
 
         auto delimiter = chop();
 
         if (!delimiter) {
-            // throw unexpected token error
+            throw_unexpected_end_of_stream("Expected ',' or '}'");
             return std::nullopt;
         }
 
@@ -71,11 +88,51 @@ auto Parser::parse_object() -> std::optional<JSONObject> {
         }
 
         if (!std::holds_alternative<jp::Comma>(delimiter->token_type)) {
-            // throw unexpected token error
+            throw_unexpected_token("','", *delimiter);
+            return std::nullopt;
+        }
+    }
+
+    return std::nullopt;
+}
+
+auto Parser::parse_array() -> std::optional<JSONArray> {
+    auto arr = JSONArray{};
+
+    if (tokens.empty()) {
+        return std::nullopt;
+    }
+
+    // the array is empty
+    if (std::holds_alternative<jp::RBracket>(peek()->token_type)) {
+        chop(); // consume RBracket
+        return arr;
+    }
+
+    while (!tokens.empty()) {
+        auto value = parse_value();
+
+        if (!value) {
             return std::nullopt;
         }
 
-        chop(); // consume comma
+        arr.push_back(*value);
+
+        auto delimiter = chop();
+
+        if (!delimiter) {
+            throw_unexpected_end_of_stream("Expected ',' or ']'");
+            return std::nullopt;
+        }
+
+        if (std::holds_alternative<jp::RBracket>(delimiter->token_type)) {
+            return arr;
+        }
+
+        if (!std::holds_alternative<jp::Comma>(delimiter->token_type)) {
+            throw_unexpected_token("','", *delimiter);
+            return std::nullopt;
+        }
     }
 
     return std::nullopt;
@@ -96,11 +153,10 @@ auto Parser::parse_value() -> std::optional<JSONValue> {
                                      return std::nullopt;
                                  },
                                  [&](jp::LBracket) -> std::optional<JSONValue> {
-                                     exit(20);
-                                     /*auto arr = parse_array();*/
-                                     /*if (arr) {*/
-                                     /*    return JSONValue(*arr);*/
-                                     /*}*/
+                                     auto arr = parse_array();
+                                     if (arr) {
+                                         return JSONValue(*arr);
+                                     }
                                      return std::nullopt;
                                  },
                                  [&](const jp::String &s) -> std::optional<JSONValue> { return JSONValue(s.value); },
@@ -132,5 +188,27 @@ auto Parser::parse() -> std::optional<JSONValue> {
                       token.token_type);
 
     return std::nullopt;
+}
+
+auto parse(const std::string_view &json) -> expected<JSONValue, std::vector<Error>> {
+    auto [tokens, errors] = jp::collect_tokens(json);
+
+    if (!errors.empty()) {
+        return errors;
+    }
+
+    auto parser = Parser(tokens);
+
+    auto result = parser.parse();
+
+    if (result) {
+        return *result;
+    }
+
+    for (auto &error : parser.get_errors()) {
+        errors.push_back(error);
+    }
+
+    return errors;
 }
 } // namespace jp
