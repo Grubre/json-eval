@@ -1,4 +1,4 @@
-add_library(Common STATIC error.cpp)
+add_library(Common STATIC error.cpp parser_helper.cpp)
 
 # target_link_libraries(Common PRIVATE)
 
