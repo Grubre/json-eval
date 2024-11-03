@@ -7,7 +7,7 @@
 auto main() -> int {
     std::cout << "Hello World!" << std::endl;
 
-    const std::string source = R"({"key": {"key2": "value"}})";
+    const std::string source = R"({"key": {"key2": "value", "key3": 123, "key4": [1, 2, 3]}})";
     auto [tokens, errors] = jp::collect_tokens(source);
 
     for (const auto &error : errors) {
@@ -22,7 +22,9 @@ auto main() -> int {
     auto obj = parser.parse();
 
     if (!obj) {
-        std::cerr << "Failed to parse object" << std::endl;
+        for (const auto &error : parser.get_errors()) {
+            display_error(error);
+        }
         return 1;
     }
 
