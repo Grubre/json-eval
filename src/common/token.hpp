@@ -21,7 +21,6 @@ DEFINE_TOKEN_TYPE(Comma)
 DEFINE_TOKEN_TYPE(Colon)
 DEFINE_TOKEN_TYPE(LBrace)
 DEFINE_TOKEN_TYPE(RBrace)
-DEFINE_TOKEN_TYPE(Quote)
 
 DEFINE_TOKEN_TYPE(True)
 DEFINE_TOKEN_TYPE(False)
@@ -32,8 +31,7 @@ DEFINE_TOKEN_TYPE(Number, double value;)
 
 DEFINE_TOKEN_TYPE(String, std::string value;)
 
-using TokenType =
-    std::variant<LBracket, RBracket, Comma, Colon, LBrace, RBrace, Quote, True, False, Null, Number, String>;
+using TokenType = std::variant<LBracket, RBracket, Comma, Colon, LBrace, RBrace, True, False, Null, Number, String>;
 
 struct Token {
     TokenType token_type;
@@ -64,8 +62,6 @@ constexpr auto to_string(TokenType token_type) -> std::string {
                 return "{";
             } else if constexpr (std::is_same_v<T, RBrace>) {
                 return "}";
-            } else if constexpr (std::is_same_v<T, Quote>) {
-                return "\"";
             } else if constexpr (std::is_same_v<T, True>) {
                 return "true";
             } else if constexpr (std::is_same_v<T, False>) {
