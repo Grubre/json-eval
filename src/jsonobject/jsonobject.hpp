@@ -18,6 +18,13 @@ struct JSONValue {
 
     ValueType value;
 
+    [[nodiscard]] auto is_null() const -> bool { return std::holds_alternative<JSONNull>(value); }
+    [[nodiscard]] auto is_bool() const -> bool { return std::holds_alternative<bool>(value); }
+    [[nodiscard]] auto is_number() const -> bool { return std::holds_alternative<JSONNumber>(value); }
+    [[nodiscard]] auto is_string() const -> bool { return std::holds_alternative<std::string>(value); }
+    [[nodiscard]] auto is_object() const -> bool { return std::holds_alternative<JSONObject>(value); }
+    [[nodiscard]] auto is_array() const -> bool { return std::holds_alternative<JSONArray>(value); }
+
     JSONValue() = default;
     explicit JSONValue(JSONNull /*null*/) : value(JSONNull{}) {}
     explicit JSONValue(bool b) : value(b) {}
