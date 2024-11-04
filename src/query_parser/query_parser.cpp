@@ -142,7 +142,19 @@ auto Parser::parse_value() -> std::optional<query::Value> {
     return std::visit(
         overloaded{[&](const query::Double &d) -> std::optional<query::Value> { return query::Double{d.value}; },
                    [&](const query::Integer &i) -> std::optional<query::Value> { return query::Integer{i.value}; },
-                   [&](const query::Identifier &i) -> std::optional<query::Value> { return parse_path(i); },
+                   [&](const query::Identifier &i) -> std::optional<query::Value> {
+                       const auto *const maybe_lparen = peek();
+
+                       if (maybe_lparen == nullptr) {
+                           return parse_path(i);
+                       }
+
+                       if (!std::holds_alternative<query::LParen>(maybe_lparen->token_type)) {
+                           return parse_path(i);
+                       }
+
+                       return parse_function(i);
+                   },
                    [&](const auto & /*unexpected*/) -> std::optional<query::Value> {
                        throw_unexpected_token("Value", token);
                        return std::nullopt;
@@ -175,6 +187,49 @@ auto Parser::parse_expression() -> std::optional<query::Expression> {
     assert(false);
     /*return query::Expression{.lhs = std::move(lhs.value()), .op = std::get<query::Operator>(op.token_type), .rhs =
      * std::move(rhs.value())};*/
+}
+
+auto Parser::parse_function(const query::Identifier &name) -> std::optional<query::Value> {
+    auto maybe_lparen = chop();
+    if (!maybe_lparen) {
+        push_err("Expected '(' after function name", 0);
+        return std::nullopt;
+    }
+
+    if (!std::holds_alternative<query::LParen>(maybe_lparen->token_type)) {
+        push_err(std::format("Unexpected token: Expected '(', instead found {}", to_string(maybe_lparen->token_type)),
+                 maybe_lparen->col);
+        return std::nullopt;
+    }
+
+    auto args = std::vector<query::Value>{};
+
+    while (true) {
+        auto arg = parse_value();
+        if (!arg.has_value()) {
+            return std::nullopt;
+        }
+
+        args.push_back(std::move(arg.value()));
+
+        auto maybe_comma = chop();
+        if (!maybe_comma) {
+            break;
+        }
+
+        if (std::holds_alternative<query::RParen>(maybe_comma->token_type)) {
+            break;
+        }
+
+        if (!std::holds_alternative<query::Comma>(maybe_comma->token_type)) {
+            push_err(
+                std::format("Unexpected token: Expected ',', instead found {}", to_string(maybe_comma->token_type)),
+                maybe_comma->col);
+            return std::nullopt;
+        }
+    }
+
+    return std::make_unique<query::Function>(name, std::move(args));
 }
 
 } // namespace query

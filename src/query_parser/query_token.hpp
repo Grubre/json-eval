@@ -14,16 +14,17 @@ namespace query {
         auto operator==(const name &other) const -> bool = default;                                                    \
         auto operator!=(const name &other) const -> bool = default;                                                    \
     };
-
 DEFINE_TOKEN_TYPE(Identifier, std::string identifier;)
 DEFINE_TOKEN_TYPE(LBracket)
 DEFINE_TOKEN_TYPE(RBracket)
+DEFINE_TOKEN_TYPE(LParen)
+DEFINE_TOKEN_TYPE(RParen)
 DEFINE_TOKEN_TYPE(Comma)
 DEFINE_TOKEN_TYPE(Dot)
 DEFINE_TOKEN_TYPE(Double, double value;)
 DEFINE_TOKEN_TYPE(Integer, std::int64_t value;)
 
-using TokenType = std::variant<Identifier, LBracket, RBracket, Comma, Dot, Double, Integer>;
+using TokenType = std::variant<Identifier, LBracket, RBracket, LParen, RParen, Comma, Dot, Double, Integer>;
 
 struct Token {
     TokenType token_type;
@@ -49,6 +50,10 @@ constexpr auto to_string(TokenType token_type) -> std::string {
                 return ",";
             } else if constexpr (std::is_same_v<T, Dot>) {
                 return ".";
+            } else if constexpr (std::is_same_v<T, LParen>) {
+                return "(";
+            } else if constexpr (std::is_same_v<T, RParen>) {
+                return ")";
             } else if constexpr (std::is_same_v<T, Double>) {
                 return std::format("{}", token.value);
             } else if constexpr (std::is_same_v<T, Integer>) {

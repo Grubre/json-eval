@@ -70,6 +70,10 @@ auto Lexer::next_token() -> std::optional<jp::expected<Token, Error>> {
         return Token{LBracket{}, first_char_column};
     } else if (c == ']') {
         return Token{RBracket{}, first_char_column};
+    } else if (c == '(') {
+        return Token{LParen{}, first_char_column};
+    } else if (c == ')') {
+        return Token{RParen{}, first_char_column};
     } else {
         return Error{
             .source = "Query Lexer", .message = "Unexpected character", .line = 0, .column = first_char_column};
