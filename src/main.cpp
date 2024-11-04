@@ -8,11 +8,18 @@
 auto main() -> int {
     std::cout << "Hello World!" << std::endl;
 
-    /*const std::string source = R"({"key": {"key2": "value", "key3": 123, "key4": [1, 2, 3]}})";*/
-    const std::string source = R"(1e)";
+    const std::string source = R"(123)";
     auto [tokens, errors] = jp::collect_tokens(source);
 
     for (const auto &token : tokens) {
+        if (std::holds_alternative<jp::Number>(token.token_type)) {
+            auto number = std::get<jp::Number>(token.token_type);
+            if (std::holds_alternative<int64_t>(number.value)) {
+                std::cout << "integer: " << std::get<int64_t>(number.value) << std::endl;
+            } else if (std::holds_alternative<double>(number.value)) {
+                std::cout << "double: " << std::get<double>(number.value) << std::endl;
+            }
+        }
         std::cout << "token:" << token.row << ":" << token.col << ": " << to_string(token.token_type) << std::endl;
     }
 

@@ -45,7 +45,10 @@ TEST_SUITE("Lexer") {
         CHECK(token1->value().row == 1);
         CHECK(token1->value().col == 1);
         REQUIRE(std::holds_alternative<Number>(token1->value().token_type));
-        CHECK(std::get<Number>(token1->value().token_type).value == 123.);
+
+        auto number = std::get<Number>(token1->value().token_type);
+        REQUIRE(std::holds_alternative<int64_t>(number.value));
+        CHECK(std::get<int64_t>(number.value) == 123);
 
         // Second token: floating point number
         auto token2 = lexer.next_token();
@@ -54,7 +57,10 @@ TEST_SUITE("Lexer") {
         CHECK(token2->value().row == 1);
         CHECK(token2->value().col == 5);
         REQUIRE(std::holds_alternative<Number>(token2->value().token_type));
-        CHECK(std::get<Number>(token2->value().token_type).value == 456.78);
+
+        number = std::get<Number>(token2->value().token_type);
+        REQUIRE(std::holds_alternative<double>(number.value));
+        CHECK(std::get<double>(number.value) == 456.78);
     }
 
     TEST_CASE("Lexer recognizes scientific notation") {
@@ -67,7 +73,9 @@ TEST_SUITE("Lexer") {
         CHECK(token1->value().row == 1);
         CHECK(token1->value().col == 1);
         REQUIRE(std::holds_alternative<Number>(token1->value().token_type));
-        CHECK(std::get<Number>(token1->value().token_type).value == 1e3);
+        auto number = std::get<Number>(token1->value().token_type);
+        REQUIRE(std::holds_alternative<int64_t>(number.value));
+        CHECK(std::get<int64_t>(number.value) == 1e3);
 
         // Second token: 1.2e-3
         auto token2 = lexer.next_token();
@@ -76,7 +84,9 @@ TEST_SUITE("Lexer") {
         CHECK(token2->value().row == 1);
         CHECK(token2->value().col == 5);
         REQUIRE(std::holds_alternative<Number>(token2->value().token_type));
-        CHECK(std::get<Number>(token2->value().token_type).value == 1.2e-3);
+        number = std::get<Number>(token2->value().token_type);
+        REQUIRE(std::holds_alternative<double>(number.value));
+        CHECK(std::get<double>(number.value) == 1.2e-3);
     }
 
     TEST_CASE("Lexer rejects invalid scientific notation") {

@@ -13,7 +13,7 @@ auto Lexer::next_token() -> std::optional<jp::expected<Token, Error>> {
     char c = source[current_index];
     if (is_numeric(c)) {
         auto number = chop_while(is_numeric);
-        return Token{Number{std::stoull(std::string{number})}, current_index};
+        return Token{Integer{std::stoull(std::string{number})}, current_index};
     } else if (is_alphabetic(c)) {
         auto identifier = chop_while(is_alphanumeric);
         return Token{Identifier{std::string{identifier}}, current_index};

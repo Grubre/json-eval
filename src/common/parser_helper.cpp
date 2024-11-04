@@ -92,8 +92,9 @@ auto parse_num(std::string_view &source) -> jp::expected<jp::Number, Error> {
         i++;
     }
 
+    bool is_float = i < source.size() && source[i] == '.';
     // check if it's a floating point number
-    if (i < source.size() && source[i] == '.') {
+    if (is_float) {
         i++;
         while (i < source.size() && is_numeric(source[i])) {
             i++;
@@ -101,7 +102,12 @@ auto parse_num(std::string_view &source) -> jp::expected<jp::Number, Error> {
     }
     const auto number_str = source.substr(0, i);
 
-    auto value = std::stod(std::string(number_str));
+    auto value = jp::Number{};
+    if (is_float) {
+        value = jp::Number{.value = std::stod(std::string(number_str))};
+    } else {
+        value = jp::Number{.value = std::stoll(std::string(number_str))};
+    }
     source.remove_prefix(i);
 
     // check if it's a scientific notation
@@ -121,10 +127,10 @@ auto parse_num(std::string_view &source) -> jp::expected<jp::Number, Error> {
 
         const auto exponential = source.substr(1, i - 1);
         const auto exp_value = std::stod(std::string(exponential));
-        value *= std::pow(10, exp_value);
+        std::visit([&exp_value](auto &value) { value = value * std::pow(10, exp_value); }, value.value);
 
         source.remove_prefix(i);
     }
 
-    return jp::Number{.value = value};
+    return value;
 }

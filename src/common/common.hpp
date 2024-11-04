@@ -1,5 +1,8 @@
 #pragma once
 
+#include <cstdint>
+#include <string>
+#include <variant>
 template <class... Ts> struct overloaded : Ts... {
     using Ts::operator()...;
 };
@@ -12,4 +15,14 @@ constexpr auto is_alphabetic(char c) -> bool { return is_lowercase_alphabetic(c)
 constexpr auto is_alphanumeric(char c) -> bool { return is_alphabetic(c) || is_numeric(c); }
 constexpr auto is_hex_digit(char c) -> bool {
     return is_numeric(c) || (c >= 'A' && c <= 'F') || (c >= 'a' && c <= 'f');
+}
+
+using num_type = std::variant<double, std::int64_t>;
+
+constexpr auto num_to_string(num_type num) -> std::string {
+    return std::visit(overloaded{
+                          [](double d) { return std::to_string(d); },
+                          [](std::int64_t i) { return std::to_string(i); },
+                      },
+                      num);
 }

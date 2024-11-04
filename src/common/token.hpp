@@ -1,5 +1,6 @@
 #pragma once
 
+#include "common.hpp"
 #include <cassert>
 #include <cstdint>
 #include <format>
@@ -27,7 +28,7 @@ DEFINE_TOKEN_TYPE(False)
 DEFINE_TOKEN_TYPE(Null)
 
 // FIXME: The value member might need to be a variant<double, int64_t> to support both int and double
-DEFINE_TOKEN_TYPE(Number, double value;)
+DEFINE_TOKEN_TYPE(Number, num_type value;)
 
 DEFINE_TOKEN_TYPE(String, std::string value;)
 
@@ -69,7 +70,8 @@ constexpr auto to_string(TokenType token_type) -> std::string {
             } else if constexpr (std::is_same_v<T, Null>) {
                 return "null";
             } else if constexpr (std::is_same_v<T, Number>) {
-                return std::to_string(token.value);
+                return std::visit([](const auto &value) -> std::string { return std::format("{}", value); },
+                                  token.value);
             } else if constexpr (std::is_same_v<T, String>) {
                 return std::format("\"{}\"", token.value);
             } else {
