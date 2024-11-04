@@ -10,17 +10,17 @@ namespace query {
 class Lexer {
   public:
     Lexer() = delete;
-    explicit Lexer(const std::string_view source) : current_index(0), source(source) {}
+    explicit Lexer(const std::string_view source) : column_number(0u), source(source) {}
 
     auto next_token() -> std::optional<jp::expected<Token, Error>>;
 
   private:
-    auto chop(std::uint32_t count = 1u) -> std::string_view;
+    auto chop() -> char;
     auto chop_while(const std::function<bool(char)> &predicate) -> std::string_view;
     auto peek() -> std::optional<char>;
     void trim_whitespace();
 
-    uint32_t current_index;
+    uint32_t column_number;
     std::string_view source;
 };
 } // namespace query

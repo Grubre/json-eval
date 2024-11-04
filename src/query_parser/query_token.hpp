@@ -21,7 +21,7 @@ DEFINE_TOKEN_TYPE(RBracket)
 DEFINE_TOKEN_TYPE(Comma)
 DEFINE_TOKEN_TYPE(Dot)
 DEFINE_TOKEN_TYPE(Double, double value;)
-DEFINE_TOKEN_TYPE(Integer, std::uint64_t value;)
+DEFINE_TOKEN_TYPE(Integer, std::int64_t value;)
 
 using TokenType = std::variant<Identifier, LBracket, RBracket, Comma, Dot, Double, Integer>;
 
