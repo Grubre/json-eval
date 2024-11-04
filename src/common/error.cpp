@@ -7,6 +7,10 @@ auto Error::operator==(const Error &other) const -> bool {
 }
 
 void display_error(const Error &error) {
-    std::cout << "Error: " << error.source << ":" << error.line << ":" << error.column << ": " << error.message
-              << std::endl;
+    std::cout << "Error:";
+
+    if (error.source != "Evaluator") {
+        std::cout << error.source << ":" << error.line << ":" << error.column << ":";
+    }
+    std::cout << ' ' << error.message << std::endl;
 }
