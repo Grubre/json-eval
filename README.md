@@ -16,6 +16,12 @@ Use `.` to index into object members. For a JSON file: `{ "a": { "b": 1 } }`, th
 #### Indexing into arrays
 Use `[]` to index into arrays, i.e. `a[5]`. You can also use expressions that evaluate to an integer as the index.
 For example, the JSON file: `{ "array": [1,[2],3], "b": { "c": 1" } }`, the query `array[b.c]` will return [2].
+#### Intrinsic function
+- `size()` - takes either an array or an object. For the object returns the number of keys, for the array - number of elements.
+- `max()` - takes either an array or a variadic number of doubles/integers. Returns the maximum.
+- `min()` - takes either an array or a variadic number of doubles/integers. Returns the minimum.
+- `sum()` - takes either an array or a variadic number of doubles/integers. Returns the sum.
+- `product()` - takes either an array or a variadic number of doubles/integers. Returns the product.
 
 ## Build
 
