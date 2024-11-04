@@ -27,6 +27,13 @@ struct JSONValue {
     [[nodiscard]] auto is_object() const -> bool { return std::holds_alternative<JSONObject>(value); }
     [[nodiscard]] auto is_array() const -> bool { return std::holds_alternative<JSONArray>(value); }
 
+    [[nodiscard]] auto to_object() const -> const JSONObject & { return std::get<JSONObject>(value); }
+    [[nodiscard]] auto to_array() const -> const JSONArray & { return std::get<JSONArray>(value); }
+    [[nodiscard]] auto to_string() const -> const std::string & { return std::get<std::string>(value); }
+    [[nodiscard]] auto to_double() const -> JSONDouble { return std::get<JSONDouble>(value); }
+    [[nodiscard]] auto to_integer() const -> JSONInteger { return std::get<JSONInteger>(value); }
+    [[nodiscard]] auto to_bool() const -> bool { return std::get<bool>(value); }
+
     JSONValue() = default;
     explicit JSONValue(JSONNull /*null*/) : value(JSONNull{}) {}
     explicit JSONValue(bool b) : value(b) {}
@@ -53,7 +60,11 @@ inline auto to_string(const JSONNull & /*unused*/) -> std::string { return "null
 inline auto to_string(const JSONValue &val) -> std::string;
 
 inline auto to_string(const JSONArray &arr) -> std::string {
-    auto str = std::string{'['};
+    if (arr.empty()) {
+        return "[]";
+    }
+
+    auto str = std::string{"[ "};
 
     for (const auto &value : arr) {
         str += to_string(value);
@@ -65,14 +76,20 @@ inline auto to_string(const JSONArray &arr) -> std::string {
         str.pop_back();
     }
 
-    return str + ']';
+    return str + " ]";
 }
 
 inline auto to_string(const JSONObject &obj) -> std::string {
-    auto str = std::string{'{'};
+    if (obj.empty()) {
+        return "{}";
+    }
+
+    auto str = std::string{"{ "};
 
     for (const auto &[key, value] : obj) {
+        str += '"';
         str += key;
+        str += '"';
         str += ": ";
         str += to_string(value);
         str += ", ";
@@ -83,7 +100,7 @@ inline auto to_string(const JSONObject &obj) -> std::string {
         str.pop_back();
     }
 
-    return str + '}';
+    return str + " }";
 }
 
 inline auto to_string(const JSONValue &val) -> std::string {
