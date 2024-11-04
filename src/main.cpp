@@ -94,7 +94,7 @@ void register_list_function(query::Evaluator &evaluator, const std::string &name
                             jp::JSONDouble default_val) {
     evaluator.register_function(
         name,
-        [compare_fn, default_val, &name](query::Evaluator *evaluator, const std::span<const query::Expression> &args)
+        [compare_fn, default_val, name](query::Evaluator *evaluator, const std::span<const query::Expression> &args)
             -> jp::expected<jp::JSONValue, Error> {
             if (args.empty()) {
                 return Error{"Evaluator", name + "() expects at least one argument", 1, 0};
