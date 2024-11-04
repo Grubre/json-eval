@@ -33,13 +33,14 @@ String parsing:
         'a' . 'f'
 */
 // Expects a string_view that starts with the first character after the opening '"'
-auto parse_str(std::string_view &source) -> jp::expected<std::string, Error> {
+auto parse_str(std::string_view &source,
+               const std::function<bool(char)> &ending_predicate) -> jp::expected<std::string, Error> {
     auto current_index = 0;
 
     while (current_index < source.size()) {
         const auto c = source[current_index];
 
-        if (c == '"') {
+        if (ending_predicate(c)) {
             auto result = std::string{source.substr(0, current_index)};
             source.remove_prefix(current_index + 1);
             return result;
