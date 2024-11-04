@@ -34,6 +34,17 @@ struct JSONValue {
     [[nodiscard]] auto to_integer() const -> JSONInteger { return std::get<JSONInteger>(value); }
     [[nodiscard]] auto to_bool() const -> bool { return std::get<bool>(value); }
 
+    [[nodiscard]] auto type_str() const -> std::string {
+        return std::visit(overloaded{[](const JSONNull &) -> std::string { return "null"; },
+                                     [](bool) -> std::string { return "bool"; },
+                                     [](JSONDouble) -> std::string { return "double"; },
+                                     [](JSONInteger) -> std::string { return "integer"; },
+                                     [](const std::string &) -> std::string { return "string"; },
+                                     [](const JSONObject &) -> std::string { return "object"; },
+                                     [](const JSONArray &) -> std::string { return "array"; }},
+                          value);
+    }
+
     JSONValue() = default;
     explicit JSONValue(JSONNull /*null*/) : value(JSONNull{}) {}
     explicit JSONValue(bool b) : value(b) {}
