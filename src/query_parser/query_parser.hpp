@@ -17,6 +17,7 @@ class Parser {
     auto parse() -> std::optional<query::Expression>;
     auto parse_expression() -> std::optional<query::Expression>;
     auto parse_value() -> std::optional<query::Value>;
+    auto parse_path(const query::Identifier &first_id) -> std::optional<query::Path>;
 
     void push_err(Error &&err);
     void push_err(std::string &&message, unsigned column);

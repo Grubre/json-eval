@@ -52,7 +52,7 @@ auto Lexer::next_token() -> std::optional<jp::expected<Token, Error>> {
 
     if (is_numeric(c)) {
         auto number = chop_while(is_numeric);
-        return Token{Integer{std::stoull(std::string{number})}, first_char_column};
+        return Token{Integer{std::stoll(std::string{number})}, first_char_column};
     }
 
     if (is_alphabetic(c)) {
@@ -74,6 +74,22 @@ auto Lexer::next_token() -> std::optional<jp::expected<Token, Error>> {
         return Error{
             .source = "Query Lexer", .message = "Unexpected character", .line = 0, .column = first_char_column};
     }
+}
+
+auto collect_tokens(const std::string_view source) -> std::pair<std::vector<Token>, std::vector<Error>> {
+    auto tokens = std::vector<Token>{};
+    auto errors = std::vector<Error>{};
+
+    auto lexer = Lexer{source};
+
+    while (auto next_token = lexer.next_token()) {
+        if (next_token->has_value()) {
+            tokens.push_back(next_token->value());
+        } else {
+            errors.push_back(next_token->error());
+        }
+    }
+    return {tokens, errors};
 }
 
 } // namespace query

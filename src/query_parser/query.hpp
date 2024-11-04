@@ -9,6 +9,7 @@ namespace query {
 struct Path {
     using NextType = std::unique_ptr<Path>;
 
+    Identifier id;
     std::optional<std::variant<NextType, Integer>> subscript;
     std::optional<NextType> next;
 };

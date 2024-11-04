@@ -5,57 +5,68 @@
 #include "parser.hpp"
 #include "query_parser.hpp"
 #include "query_lexer.hpp"
+#include "query_evaluator.hpp"
 
 auto main() -> int {
     std::cout << "Hello World!" << std::endl;
 
-    const auto source = R"(a.b.c.ce.x)";
+    const std::string source = R"({"a": { "b": [ 1, 2, { "c": "test" }, [11, 12] ]}})";
+    auto [tokens, errors] = jp::collect_tokens(source);
 
-    auto lexer = query::Lexer{source};
-
-    while (auto token = lexer.next_token()) {
-        if (token->has_value()) {
-            std::cout << "token: " << to_string(token->value().token_type) << std::endl;
-        } else {
-            std::cout << "error: " << token->error().message << std::endl;
-        }
+    for (const auto &error : errors) {
+        display_error(error);
     }
 
-    /*const std::string source = R"(123)";*/
-    /*auto [tokens, errors] = jp::collect_tokens(source);*/
-    /**/
-    /*for (const auto &token : tokens) {*/
-    /*    if (std::holds_alternative<jp::Number>(token.token_type)) {*/
-    /*        auto number = std::get<jp::Number>(token.token_type);*/
-    /*        if (std::holds_alternative<int64_t>(number.value)) {*/
-    /*            std::cout << "integer: " << std::get<int64_t>(number.value) << std::endl;*/
-    /*        } else if (std::holds_alternative<double>(number.value)) {*/
-    /*            std::cout << "double: " << std::get<double>(number.value) << std::endl;*/
-    /*        }*/
-    /*    }*/
-    /*    std::cout << "token:" << token.row << ":" << token.col << ": " << to_string(token.token_type) << std::endl;*/
-    /*}*/
-    /**/
-    /*for (const auto &error : errors) {*/
-    /*    display_error(error);*/
-    /*}*/
-    /**/
-    /*if (!errors.empty()) {*/
-    /*    return 1;*/
-    /*}*/
-    /**/
-    /*auto parser = jp::Parser(tokens);*/
-    /*auto obj = parser.parse();*/
-    /**/
-    /*if (!obj) {*/
-    /*    for (const auto &error : parser.get_errors()) {*/
-    /*        display_error(error);*/
-    /*    }*/
-    /*    return 1;*/
-    /*}*/
-    /**/
-    /*auto output = jp::to_string(*obj);*/
-    /*std::cout << output << std::endl;*/
+    if (!errors.empty()) {
+        return 1;
+    }
+
+    auto parser = jp::Parser(tokens);
+    auto obj = parser.parse();
+
+    if (!obj) {
+        for (const auto &error : parser.get_errors()) {
+            display_error(error);
+        }
+        return 1;
+    }
+
+    auto output = jp::to_string(*obj);
+    std::cout << "Input JSON: " << output << std::endl;
+
+    const std::string query = R"(a.b)";
+
+    auto [query_tokens, query_errors] = query::collect_tokens(query);
+
+    for (const auto &error : query_errors) {
+        display_error(error);
+    }
+
+    if (!query_errors.empty()) {
+        return 1;
+    }
+
+    auto query_parser = query::Parser(query_tokens);
+
+    auto expression = query_parser.parse();
+
+    if (!expression) {
+        for (const auto &error : query_parser.get_errors()) {
+            display_error(error);
+        }
+        return 1;
+    }
+
+    auto evaluator = query::Evaluator(&*obj);
+
+    auto result = evaluator.evaluate_expression(*expression);
+
+    if (!result.has_value()) {
+        display_error(result.error());
+        return 1;
+    }
+
+    std::cout << "Result: " << jp::to_string(result.value()) << std::endl;
 
     return 0;
 }

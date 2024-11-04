@@ -1,6 +1,7 @@
 #include "query_parser.hpp"
 #include "query_token.hpp"
 #include <iostream>
+#include <memory>
 
 namespace query {
 
@@ -47,6 +48,42 @@ auto Parser::parse() -> std::optional<query::Expression> {
     return parse_expression();
 }
 
+auto Parser::parse_path(const query::Identifier &first_id) -> std::optional<query::Path> {
+    const auto maybe_delimiter = chop();
+
+    if (!maybe_delimiter) {
+        return query::Path{first_id, std::nullopt, std::nullopt};
+    }
+
+    const auto &delimiter = *maybe_delimiter;
+
+    return std::visit(
+        overloaded{
+            [&](const query::Dot &) -> std::optional<Path> {
+                auto maybe_next_id = chop();
+                if (!maybe_next_id) {
+                    push_err(std::format("Unexpected end of stream, expected identifier after '.'"), delimiter.col);
+                }
+
+                const auto &next_id = *maybe_next_id;
+                auto next = parse_path(std::get<query::Identifier>(next_id.token_type));
+
+                if (!next.has_value()) {
+                    return std::nullopt;
+                }
+
+                return query::Path{
+                    .id = first_id, .subscript = std::nullopt, .next = std::make_unique<Path>(std::move(*next))};
+            },
+            [&](const query::LBracket &) -> std::optional<Path> { assert(false); },
+            [&](const auto &unexpected) -> std::optional<Path> {
+                push_err(std::format("Unexpected token: Expected '.' or '[', instead found {}", to_string(unexpected)),
+                         delimiter.col);
+                return std::nullopt;
+            }},
+        delimiter.token_type);
+}
+
 auto Parser::parse_value() -> std::optional<query::Value> {
     auto maybe_token = chop();
 
@@ -59,6 +96,7 @@ auto Parser::parse_value() -> std::optional<query::Value> {
     return std::visit(
         overloaded{[&](const query::Double &d) -> std::optional<query::Value> { return query::Double{d.value}; },
                    [&](const query::Integer &i) -> std::optional<query::Value> { return query::Integer{i.value}; },
+                   [&](const query::Identifier &i) -> std::optional<query::Value> { return parse_path(i); },
                    [&](const auto &unexpected) -> std::optional<query::Value> {
                        throw_unexpected_token("Value", token);
                        return std::nullopt;

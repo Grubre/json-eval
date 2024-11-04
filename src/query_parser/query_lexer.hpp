@@ -23,4 +23,6 @@ class Lexer {
     uint32_t column_number;
     std::string_view source;
 };
+
+auto collect_tokens(const std::string_view source) -> std::pair<std::vector<Token>, std::vector<Error>>;
 } // namespace query
