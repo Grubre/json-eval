@@ -12,22 +12,43 @@ auto Evaluator::evaluate_path(const jp::JSONObject *object,
         return Error{"Evaluator", std::format("Key '{}' not found", id), 1, 0};
     }
 
+    auto evaluated = value->second;
+
+    if (path.subscript) {
+        if (!value->second.is_array()) {
+            return Error{"Evaluator", std::format("Attempt to index into key '{}' which is not an array", id), 1, 0};
+        }
+
+        const auto &array = std::get<jp::JSONArray>(value->second.value);
+
+        const auto subscript = evaluate_value(*path.subscript);
+
+        if (!std::holds_alternative<jp::JSONInteger>(subscript->value)) {
+            return Error{"Evaluator",
+                         std::format("Index must be an integer, instead found {}: {}[{}]", subscript->type_str(),
+                                     value->first, to_string(subscript.value())),
+                         1, 0};
+        }
+
+        evaluated = array[subscript->to_integer()];
+    }
+
     if (path.next) {
-        if (!value->second.is_object()) {
+        if (!evaluated.is_object()) {
             return Error{"Evaluator", std::format("Key '{}' is not an object", id), 1, 0};
         }
 
-        return evaluate_path(&std::get<jp::JSONObject>(value->second.value), **path.next);
+        return evaluate_path(&std::get<jp::JSONObject>(evaluated.value), **path.next);
     }
 
-    return value->second;
+    return evaluated;
 }
 
 auto Evaluator::evaluate_value(const query::Value &value) -> jp::expected<jp::JSONValue, Error> {
     return std::visit(
         overloaded{
-            [&](const query::Path &path) -> jp::expected<jp::JSONValue, Error> {
-                return evaluate_path(&input_json->to_object(), path);
+            [&](const std::unique_ptr<Path> &path) -> jp::expected<jp::JSONValue, Error> {
+                return evaluate_path(&input_json->to_object(), *path);
             },
             [&](const Integer &integer) -> jp::expected<jp::JSONValue, Error> { return jp::JSONValue{integer.value}; },
             [&](const Double &double_) -> jp::expected<jp::JSONValue, Error> { return jp::JSONValue{double_.value}; }},

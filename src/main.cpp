@@ -34,7 +34,7 @@ auto main() -> int {
     auto output = jp::to_string(*obj);
     std::cout << "Input JSON: " << output << std::endl;
 
-    const std::string query = R"(a.b)";
+    const std::string query = R"(a.b[a.b[1]].c)";
 
     auto [query_tokens, query_errors] = query::collect_tokens(query);
 

@@ -48,40 +48,86 @@ auto Parser::parse() -> std::optional<query::Expression> {
     return parse_expression();
 }
 
-auto Parser::parse_path(const query::Identifier &first_id) -> std::optional<query::Path> {
-    const auto maybe_delimiter = chop();
+auto Parser::parse_path(const query::Identifier &first_id) -> std::optional<std::unique_ptr<query::Path>> {
+    auto parse_next = [&](std::int64_t col) -> std::optional<std::unique_ptr<Path>> {
+        // Parse the next identifier
+        const auto maybe_next_id = chop();
+        if (!maybe_next_id) {
+            push_err(std::format("Unexpected end of stream, expected identifier after '.'"), col);
+        }
+        const auto &next_id = *maybe_next_id;
+        auto next = parse_path(std::get<query::Identifier>(next_id.token_type));
 
-    if (!maybe_delimiter) {
-        return query::Path{first_id, std::nullopt, std::nullopt};
+        if (!next.has_value()) {
+            return std::nullopt;
+        }
+
+        return std::make_unique<Path>(std::move(**next));
+    };
+
+    const auto *const maybe_delimiter = peek();
+
+    if (maybe_delimiter == nullptr) {
+        return std::make_unique<Path>(query::Path{first_id, std::nullopt, std::nullopt});
     }
 
     const auto &delimiter = *maybe_delimiter;
 
-    return std::visit(
-        overloaded{
-            [&](const query::Dot &) -> std::optional<Path> {
-                auto maybe_next_id = chop();
-                if (!maybe_next_id) {
-                    push_err(std::format("Unexpected end of stream, expected identifier after '.'"), delimiter.col);
-                }
+    // Check if the identifier has a subscript
+    auto subscript = std::optional<Value>{std::nullopt};
+    if (std::holds_alternative<query::LBracket>(delimiter.token_type)) {
+        chop(); // Consume the opening bracket
 
-                const auto &next_id = *maybe_next_id;
-                auto next = parse_path(std::get<query::Identifier>(next_id.token_type));
+        auto value = parse_value();
 
-                if (!next.has_value()) {
-                    return std::nullopt;
-                }
+        if (!value.has_value()) {
+            push_err("Expected value after '['", delimiter.col);
+            return std::nullopt;
+        }
 
-                return query::Path{
-                    .id = first_id, .subscript = std::nullopt, .next = std::make_unique<Path>(std::move(*next))};
-            },
-            [&](const query::LBracket &) -> std::optional<Path> { assert(false); },
-            [&](const auto &unexpected) -> std::optional<Path> {
-                push_err(std::format("Unexpected token: Expected '.' or '[', instead found {}", to_string(unexpected)),
-                         delimiter.col);
-                return std::nullopt;
-            }},
-        delimiter.token_type);
+        subscript = std::move(value);
+
+        auto maybe_closing_bracket = chop();
+        if (!maybe_closing_bracket) {
+            push_err(std::format("Unexpected end of stream, expected ']' after index"), delimiter.col);
+            return std::nullopt;
+        }
+
+        const auto &closing_bracket = *maybe_closing_bracket;
+
+        if (!std::holds_alternative<query::RBracket>(closing_bracket.token_type)) {
+            push_err(
+                std::format("Unexpected token: Expected ']', instead found {}", to_string(closing_bracket.token_type)),
+                closing_bracket.col);
+            return std::nullopt;
+        }
+
+        const auto *const maybe_dot = peek();
+
+        if (maybe_dot == nullptr) {
+            return std::make_unique<Path>(Path{first_id, std::move(subscript), std::nullopt});
+        }
+
+        if (!std::holds_alternative<query::Dot>(maybe_dot->token_type)) {
+            return std::make_unique<Path>(Path{first_id, std::move(subscript), std::nullopt});
+        }
+
+        chop(); // Consume the dot
+
+        auto next = parse_next(maybe_dot->col);
+
+        return std::make_unique<Path>(Path{first_id, std::move(subscript), std::move(next)});
+    }
+
+    if (std::holds_alternative<query::Dot>(delimiter.token_type)) {
+        chop(); // Consume the dot
+
+        auto next = parse_next(delimiter.col);
+
+        return std::make_unique<Path>(Path{first_id, std::nullopt, std::move(next)});
+    }
+
+    return std::make_unique<Path>(Path{first_id, std::nullopt, std::nullopt});
 }
 
 auto Parser::parse_value() -> std::optional<query::Value> {
@@ -97,7 +143,7 @@ auto Parser::parse_value() -> std::optional<query::Value> {
         overloaded{[&](const query::Double &d) -> std::optional<query::Value> { return query::Double{d.value}; },
                    [&](const query::Integer &i) -> std::optional<query::Value> { return query::Integer{i.value}; },
                    [&](const query::Identifier &i) -> std::optional<query::Value> { return parse_path(i); },
-                   [&](const auto &unexpected) -> std::optional<query::Value> {
+                   [&](const auto & /*unexpected*/) -> std::optional<query::Value> {
                        throw_unexpected_token("Value", token);
                        return std::nullopt;
                    }},
