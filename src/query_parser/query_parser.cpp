@@ -26,7 +26,7 @@ auto Parser::chop() -> std::optional<query::Token> {
 void Parser::push_err(Error &&err) { errors.push_back(std::move(err)); }
 
 void Parser::push_err(std::string &&message, unsigned column) {
-    errors.push_back(Error{.message = std::move(message), .line = 1, .column = column});
+    errors.push_back(Error{.source = "Query", .message = std::move(message), .line = 1, .column = column});
 }
 
 void Parser::throw_unexpected_token(std::string &&expected, const Token &unexpected) {
@@ -45,7 +45,18 @@ auto Parser::parse() -> std::optional<query::Expression> {
         return std::nullopt;
     }
 
-    return parse_expression();
+    auto expr = parse_expression();
+
+    if (!tokens.empty()) {
+        auto maybe_token = chop();
+        if (maybe_token.has_value()) {
+            push_err(std::format("Unexpected token: '{}'", to_string(maybe_token->token_type)), maybe_token->col);
+        }
+
+        return std::nullopt;
+    }
+
+    return expr;
 }
 
 auto Parser::parse_path(const query::Identifier &first_id) -> std::optional<std::unique_ptr<query::Path>> {
@@ -96,9 +107,9 @@ auto Parser::parse_path(const query::Identifier &first_id) -> std::optional<std:
         const auto &closing_bracket = *maybe_closing_bracket;
 
         if (!std::holds_alternative<query::RBracket>(closing_bracket.token_type)) {
-            push_err(
-                std::format("Unexpected token: Expected ']', instead found {}", to_string(closing_bracket.token_type)),
-                closing_bracket.col);
+            push_err(std::format("Unexpected token: Expected ']', instead found '{}'",
+                                 to_string(closing_bracket.token_type)),
+                     closing_bracket.col);
             return std::nullopt;
         }
 
