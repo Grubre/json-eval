@@ -22,6 +22,9 @@ For example, the JSON file: `{ "array": [1,[2],3], "b": { "c": 1" } }`, the quer
 - `min()` - takes either an array or a variadic number of doubles/integers. Returns the minimum.
 - `sum()` - takes either an array or a variadic number of doubles/integers. Returns the sum.
 - `product()` - takes either an array or a variadic number of doubles/integers. Returns the product.
+#### Mathematical operations
+Supported binary operations `lhs (+|-|*|/) rhs` as well as the unary minus `-expression`. Grouping is also supported,
+`2 * 2 + 2` will evaluate to `6` but `2 * (2 + 2)` to 8.
 
 ## Build
 

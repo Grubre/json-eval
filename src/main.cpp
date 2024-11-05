@@ -84,7 +84,7 @@ auto main(int argc, char *argv[]) -> int {
         return 1;
     }
 
-    std::cout << "Result: " << jp::to_string(result.value()) << std::endl;
+    std::cout << jp::to_string(result.value()) << std::endl;
 
     return 0;
 }

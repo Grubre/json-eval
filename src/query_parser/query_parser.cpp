@@ -139,6 +139,23 @@ auto Parser::parse_value() -> std::optional<query::Value> {
 
     auto token = *maybe_token;
 
+    // Handle parentheses as the beginning of a grouped expression
+    if (std::holds_alternative<query::LParen>(token.token_type)) {
+        auto expr = parse_expression();
+        if (!expr.has_value()) {
+            return std::nullopt;
+        }
+
+        auto maybe_rparen = chop();
+        if (!maybe_rparen || !std::holds_alternative<query::RParen>(maybe_rparen->token_type)) {
+            push_err(std::format("Expected ')' after expression. insted found {}", to_string(maybe_rparen->token_type)),
+                     token.col);
+            return std::nullopt;
+        }
+
+        return expr;
+    }
+
     return std::visit(
         overloaded{[&](const query::Double &d) -> std::optional<query::Value> { return query::Double{d.value}; },
                    [&](const query::Integer &i) -> std::optional<query::Value> { return query::Integer{i.value}; },
@@ -155,6 +172,14 @@ auto Parser::parse_value() -> std::optional<query::Value> {
 
                        return parse_function(i);
                    },
+                   [&](const query::Minus & /*minus*/) -> std::optional<query::Value> {
+                       auto value = parse_value();
+                       if (!value.has_value()) {
+                           return std::nullopt;
+                       }
+
+                       return std::make_unique<query::Unary>(token, std::move(value.value()));
+                   },
                    [&](const auto & /*unexpected*/) -> std::optional<query::Value> {
                        throw_unexpected_token("Value", token);
                        return std::nullopt;
@@ -162,32 +187,7 @@ auto Parser::parse_value() -> std::optional<query::Value> {
         token.token_type);
 }
 
-auto Parser::parse_expression() -> std::optional<query::Expression> {
-    auto lhs = parse_value();
-    if (!lhs.has_value()) {
-        return std::nullopt;
-    }
-
-    if (tokens.empty()) {
-        return lhs;
-    }
-
-    /*auto op = *chop();*/
-    /*if (!std::holds_alternative<query::Operator>(op.token_type)) {*/
-    /*    throw_unexpected_token("Operator", op);*/
-    /*    return std::nullopt;*/
-    /*}*/
-    /**/
-    /*auto rhs = parse_value();*/
-    /*if (!rhs.has_value()) {*/
-    /*    return std::nullopt;*/
-    /*}*/
-
-    std::cerr << "not yet implemented" << std::endl;
-    assert(false);
-    /*return query::Expression{.lhs = std::move(lhs.value()), .op = std::get<query::Operator>(op.token_type), .rhs =
-     * std::move(rhs.value())};*/
-}
+auto Parser::parse_expression() -> std::optional<query::Expression> { return parse_term(); }
 
 auto Parser::parse_function(const query::Identifier &name) -> std::optional<query::Value> {
     auto maybe_lparen = chop();
@@ -230,6 +230,62 @@ auto Parser::parse_function(const query::Identifier &name) -> std::optional<quer
     }
 
     return std::make_unique<query::Function>(name, std::move(args));
+}
+
+auto Parser::parse_term() -> std::optional<query::Value> {
+    auto lhs = parse_factor();
+    if (!lhs.has_value()) {
+        return std::nullopt;
+    }
+
+    while (true) {
+        const auto *maybe_op = peek();
+        if (maybe_op == nullptr) {
+            return lhs;
+        }
+
+        if (!std::holds_alternative<query::Plus>(maybe_op->token_type) &&
+            !std::holds_alternative<query::Minus>(maybe_op->token_type)) {
+            return lhs;
+        }
+
+        chop(); // Consume the operator
+
+        auto rhs = parse_factor();
+        if (!rhs.has_value()) {
+            return std::nullopt;
+        }
+
+        lhs = std::make_unique<query::Binary>(*maybe_op, std::move(lhs.value()), std::move(rhs.value()));
+    }
+}
+
+auto Parser::parse_factor() -> std::optional<query::Value> {
+    auto lhs = parse_value();
+    if (!lhs.has_value()) {
+        return std::nullopt;
+    }
+
+    while (true) {
+        const auto *maybe_op = peek();
+        if (maybe_op == nullptr) {
+            return lhs;
+        }
+
+        if (!std::holds_alternative<query::Star>(maybe_op->token_type) &&
+            !std::holds_alternative<query::Slash>(maybe_op->token_type)) {
+            return lhs;
+        }
+
+        chop(); // Consume the operator
+
+        auto rhs = parse_factor();
+        if (!rhs.has_value()) {
+            return std::nullopt;
+        }
+
+        lhs = std::make_unique<query::Binary>(*maybe_op, std::move(lhs.value()), std::move(rhs.value()));
+    }
 }
 
 } // namespace query

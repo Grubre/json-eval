@@ -26,14 +26,25 @@ struct JSONValue {
     [[nodiscard]] auto is_string() const -> bool { return std::holds_alternative<std::string>(value); }
     [[nodiscard]] auto is_object() const -> bool { return std::holds_alternative<JSONObject>(value); }
     [[nodiscard]] auto is_array() const -> bool { return std::holds_alternative<JSONArray>(value); }
+    [[nodiscard]] auto is_numeric() const -> bool { return is_double() || is_integer(); }
 
-    [[nodiscard]] auto to_object() const -> const JSONObject & { return std::get<JSONObject>(value); }
-    [[nodiscard]] auto to_array() const -> const JSONArray & { return std::get<JSONArray>(value); }
-    [[nodiscard]] auto to_string() const -> const std::string & { return std::get<std::string>(value); }
-    [[nodiscard]] auto to_double() const -> JSONDouble { return std::get<JSONDouble>(value); }
-    [[nodiscard]] auto to_integer() const -> JSONInteger { return std::get<JSONInteger>(value); }
-    [[nodiscard]] auto to_bool() const -> bool { return std::get<bool>(value); }
+    [[nodiscard]] auto as_object() const -> const JSONObject & { return std::get<JSONObject>(value); }
+    [[nodiscard]] auto as_array() const -> const JSONArray & { return std::get<JSONArray>(value); }
+    [[nodiscard]] auto as_string() const -> const std::string & { return std::get<std::string>(value); }
+    [[nodiscard]] auto as_double() const -> JSONDouble { return std::get<JSONDouble>(value); }
+    [[nodiscard]] auto as_integer() const -> JSONInteger { return std::get<JSONInteger>(value); }
+    [[nodiscard]] auto as_bool() const -> bool { return std::get<bool>(value); }
 
+    // Make sure to check whether the type is numeric before calling this
+    [[nodiscard]] auto to_double() const -> JSONDouble {
+        if (is_double()) {
+            return as_double();
+        }
+
+        return static_cast<JSONDouble>(as_integer());
+    }
+
+    [[nodiscard]] auto type_id() const -> std::size_t { return value.index(); }
     [[nodiscard]] auto type_str() const -> std::string {
         return std::visit(overloaded{[](const JSONNull &) -> std::string { return "null"; },
                                      [](bool) -> std::string { return "bool"; },

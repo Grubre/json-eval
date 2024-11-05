@@ -8,9 +8,12 @@
 namespace query {
 
 struct Function;
+struct Unary;
+struct Binary;
 
 struct Path;
-using Value = std::variant<std::unique_ptr<Path>, Integer, Double, std::unique_ptr<Function>>;
+using Value = std::variant<std::unique_ptr<Path>, Integer, Double, std::unique_ptr<Function>, std::unique_ptr<Binary>,
+                           std::unique_ptr<Unary>>;
 
 struct Path {
     using NextType = std::unique_ptr<Path>;
@@ -21,6 +24,17 @@ struct Path {
 };
 
 using Expression = Value;
+
+struct Unary {
+    Token op;
+    Value value;
+};
+
+struct Binary {
+    Token op;
+    Value lhs;
+    Value rhs;
+};
 
 struct Function {
     Identifier name;

@@ -17,6 +17,8 @@ class Evaluator {
     auto evaluate_value(const query::Value &value) -> jp::expected<jp::JSONValue, Error>;
     auto evaluate_function_call(const query::Function &function) -> jp::expected<jp::JSONValue, Error>;
     auto evaluate_path(const jp::JSONObject *object, const query::Path &path) -> jp::expected<jp::JSONValue, Error>;
+    auto evaluate_binary(const query::Binary &binary) -> jp::expected<jp::JSONValue, Error>;
+    auto evaluate_unary(const query::Unary &unary) -> jp::expected<jp::JSONValue, Error>;
     void register_function(const std::string &name, func function);
 
     std::unordered_map<std::string, func> functions;

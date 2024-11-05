@@ -19,6 +19,8 @@ class Parser {
     auto parse_value() -> std::optional<query::Value>;
     auto parse_path(const query::Identifier &first_id) -> std::optional<std::unique_ptr<query::Path>>;
     auto parse_function(const query::Identifier &name) -> std::optional<query::Value>;
+    auto parse_term() -> std::optional<query::Value>;
+    auto parse_factor() -> std::optional<query::Value>;
 
     void push_err(Error &&err);
     void push_err(std::string &&message, unsigned column);
