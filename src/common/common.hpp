@@ -18,6 +18,12 @@ constexpr auto is_hex_digit(char c) -> bool {
 }
 
 using num_type = std::variant<double, std::int64_t>;
+constexpr auto as_double(num_type num) -> double {
+    return std::visit([](auto n) -> double { return static_cast<double>(n); }, num);
+}
+constexpr auto as_int(num_type num) -> std::int64_t {
+    return std::visit([](auto n) -> std::int64_t { return static_cast<std::int64_t>(n); }, num);
+}
 
 constexpr auto num_to_string(num_type num) -> std::string {
     return std::visit(overloaded{

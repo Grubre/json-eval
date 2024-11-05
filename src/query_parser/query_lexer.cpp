@@ -51,8 +51,17 @@ auto Lexer::next_token() -> std::optional<jp::expected<Token, Error>> {
     const char c = *peek();
 
     if (is_numeric(c)) {
-        auto number = chop_while(is_numeric);
-        return Token{Integer{std::stoll(std::string{number})}, first_char_column};
+        auto number = parse_num(source);
+        if (!number.has_value()) {
+            return Error{
+                .source = "Query Lexer", .message = "Failed to parse number", .line = 0, .column = first_char_column};
+        }
+
+        if (std::holds_alternative<double>(number->value)) {
+            return Token{Double{as_double(number->value)}, first_char_column};
+        }
+
+        return Token{Integer{as_int(number->value)}, first_char_column};
     }
 
     if (is_alphabetic(c)) {
@@ -74,6 +83,14 @@ auto Lexer::next_token() -> std::optional<jp::expected<Token, Error>> {
         return Token{LParen{}, first_char_column};
     } else if (c == ')') {
         return Token{RParen{}, first_char_column};
+    } else if (c == '+') {
+        return Token{Plus{}, first_char_column};
+    } else if (c == '-') {
+        return Token{Minus{}, first_char_column};
+    } else if (c == '*') {
+        return Token{Star{}, first_char_column};
+    } else if (c == '/') {
+        return Token{Slash{}, first_char_column};
     } else {
         return Error{
             .source = "Query Lexer", .message = "Unexpected character", .line = 0, .column = first_char_column};

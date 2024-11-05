@@ -24,7 +24,13 @@ DEFINE_TOKEN_TYPE(Dot)
 DEFINE_TOKEN_TYPE(Double, double value;)
 DEFINE_TOKEN_TYPE(Integer, std::int64_t value;)
 
-using TokenType = std::variant<Identifier, LBracket, RBracket, LParen, RParen, Comma, Dot, Double, Integer>;
+DEFINE_TOKEN_TYPE(Plus)
+DEFINE_TOKEN_TYPE(Minus)
+DEFINE_TOKEN_TYPE(Star)
+DEFINE_TOKEN_TYPE(Slash)
+
+using TokenType =
+    std::variant<Identifier, LBracket, RBracket, LParen, RParen, Comma, Dot, Double, Integer, Plus, Minus, Star, Slash>;
 
 struct Token {
     TokenType token_type;
@@ -54,6 +60,14 @@ constexpr auto to_string(TokenType token_type) -> std::string {
                 return "(";
             } else if constexpr (std::is_same_v<T, RParen>) {
                 return ")";
+            } else if constexpr (std::is_same_v<T, Plus>) {
+                return "+";
+            } else if constexpr (std::is_same_v<T, Minus>) {
+                return "-";
+            } else if constexpr (std::is_same_v<T, Star>) {
+                return "*";
+            } else if constexpr (std::is_same_v<T, Slash>) {
+                return "/";
             } else if constexpr (std::is_same_v<T, Double>) {
                 return std::format("{}", token.value);
             } else if constexpr (std::is_same_v<T, Integer>) {
